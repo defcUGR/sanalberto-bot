@@ -179,7 +179,7 @@ export default function pointsModule(
     });
   });
 
-  bot.action(/(add|remove)_([\wáéíóú]+)_([0-9]+)_(.+)/, async (ctx) => {
+  bot.action(/(add|remove)_([\wáéíóúÁÉÍÓÚ]+)_([0-9]+)_(.+)/, async (ctx) => {
     logger.trace(
       {
         matches: ctx.match,
