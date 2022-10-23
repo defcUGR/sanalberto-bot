@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/bunyan": "^1.8.8",
     "@types/node": "^18.11.0",
+    "@types/uuid": "^8.3.4",
     "nodemon": "^2.0.20",
     "prisma": "^4.4.0",
     "ts-node": "^10.9.1",
