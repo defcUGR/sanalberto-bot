@@ -12,7 +12,7 @@ export default function adminsModule(
   //* Add admins (must be super-admin)
   bot.command("add_admin", async (ctx) => {
     await requiresAdmin(ctx, prisma, async () => {
-      const username = ctx.message.text.split(" ")[1];
+      const username = ctx.message.text.split(" ")[1].replace(/^@/, "");
       if (username === undefined)
         ctx.replyWithHTML(
           "<b>ERROR</b> Tienes que proporcionar un nombre de usuario para añadir como administrador: <code>/add_admin &lt;username&gt;</code>"
@@ -51,7 +51,7 @@ export default function adminsModule(
 
   //* Remove admins (must be super-admin)
   bot.command("remove_admin", async (ctx) => {
-    const username = ctx.message.text.split(" ")[1];
+    const username = ctx.message.text.split(" ")[1].replace(/^@/, "");
     if (
       (await prisma.admin.findUnique({
         where: {
