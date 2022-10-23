@@ -8,7 +8,10 @@ export default function baseModule(
   prisma: PrismaClient
 ) {
   bot.use(async (ctx, next) => {
-    logger.trace({ message: ctx.message }, "message received");
+    logger.trace(
+      { message: ctx.message, cb: ctx.callbackQuery },
+      "message received"
+    );
     next();
   });
 
