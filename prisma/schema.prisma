@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Degree {
+  id Int @id @default(autoincrement())
+  name String @unique
+  points Int @default(0)
+  events Event[]
+}
+
+model Event {
+  id Int @id @default(autoincrement())
+  degree_id Int
+  Degree Degree @relation(fields: [degree_id], references: [id])
+  timestamp DateTime @default(now())
+  points Int
+  type Int // 0 for substraction, 1 for addition
+  username String
+}
+
+model Admin {
+  id Int @id @default(autoincrement())
+  username String @unique
+  date_added DateTime @default(now())
+  added_by String 
+}
+
+model Actions {
+  id Int @id @default(autoincrement())
+  message_id Int @unique
+  identifier String @unique
+}
