@@ -27,6 +27,10 @@ async function requiresAdmin(ctx: Context, fn: () => Promise<any>) {
   else await fn();
 }
 
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 dotenv.config();
 
 const prisma = new PrismaClient();
@@ -248,10 +252,7 @@ if (process.env.BOT_TOKEN === undefined) {
                 .map((degree) => degree.name)
                 .sort()
                 .map((name) =>
-                  Markup.button.callback(
-                    name,
-                    `add_${name.toLowerCase()}_${points}_${uuid}`
-                  )
+                  Markup.button.callback(name, `add_${name}_${points}_${uuid}`)
                 ),
               2
             ),
@@ -268,44 +269,129 @@ if (process.env.BOT_TOKEN === undefined) {
     });
   });
 
-  bot.action(/add_([\wáéíóú]+)_([0-9]+)_(.+)/, async (ctx) => {
+  bot.command("remove", async (ctx) => {
+    requiresAdmin(ctx, async () => {
+      const args = ctx.message.text.split(" ");
+      // Parse points
+      if (args[1] === undefined) {
+        ctx.replyWithHTML(
+          "<b>ERROR</b> Debes especificar los puntos a eliminar: <code>/remove &lt;puntos&gt;</code>"
+        );
+        return;
+      }
+      const points = (() => {
+        try {
+          return parseInt(args[1]);
+        } catch (e) {
+          ctx.replyWithHTML(
+            "<b>ERROR</b> Los puntos tienen que ser un número entero"
+          );
+          return undefined;
+        }
+      })();
+      logger.trace(
+        {
+          args,
+          unparsedPoints: args[1],
+          points,
+        },
+        "Removing points"
+      );
+      const uuid = uuidv4();
+      const buttons = [
+        ...createGroupedArray(
+          (await prisma.degree.findMany())
+            .map((degree) => degree.name)
+            .sort()
+            .map((name) =>
+              Markup.button.callback(name, `remove_${name}_${points}_${uuid}`)
+            ),
+          2
+        ),
+        [Markup.button.callback("Cancelar", `remove_cancel_${uuid}`)],
+      ];
+      logger.trace({
+        str: `remove_<degree_name>_${points}_${uuid}`,
+        uuid,
+        buttons,
+      });
+      const msg = await ctx.reply(
+        "Selecciona el grado al que quieres sumarle los puntos",
+        {
+          ...Markup.inlineKeyboard(buttons),
+        }
+      );
+      await prisma.actions.create({
+        data: {
+          identifier: uuid,
+          message_id: msg.message_id,
+        },
+      });
+    });
+  });
+
+  bot.action(/(add|remove)_([\wáéíóú]+)_([0-9]+)_(.+)/, async (ctx) => {
     logger.trace(
       {
         matches: ctx.match,
-        degree: ctx.match[1],
-        points: ctx.match[2],
-        uuid: ctx.match[3],
+        action: ctx.match[1],
+        degree: ctx.match[2],
+        points: ctx.match[3],
+        uuid: ctx.match[4],
       },
-      "Handling adding points to degree"
+      `Handling ${
+        ctx.match[1] === "add" ? "adding" : "removing"
+      } points to degree`
     );
     ctx.deleteMessage(
       (
         await prisma.actions.findUnique({
           where: {
-            identifier: ctx.match[3],
+            identifier: ctx.match[4],
           },
         })
       ).message_id
     );
-    ctx.reply(`¡Puntos añadidos! El grado ${ctx.match[1]} con ${ctx.match[2]}`);
+    const degree = await prisma.degree.update({
+      where: {
+        name: ctx.match[2],
+      },
+      data: {
+        points: {
+          [ctx.match[1] === "add" ? "increment" : "decrement"]: parseInt(
+            ctx.match[3]
+          ),
+        },
+      },
+    });
+    ctx.reply(
+      `¡Puntos ${
+        ctx.match[1] === "add" ? "añadidos" : "eliminados"
+      }! El grado ${degree.name} con ${degree.points}`
+    );
     ctx.answerCbQuery();
   });
 
-  bot.action(/add_cancel_(.+)/, async (ctx) => {
+  bot.action(/(add|remove)_cancel_(.+)/, async (ctx) => {
     logger.trace({
       matches: ctx.match,
-      uuid: ctx.match[1],
+      action: ctx.match[1],
+      uuid: ctx.match[2],
     });
     ctx.deleteMessage(
       (
         await prisma.actions.findUnique({
           where: {
-            identifier: ctx.match[1],
+            identifier: ctx.match[2],
           },
         })
       ).message_id
     );
-    ctx.reply("¡Los puntos no han sido añadidos!");
+    ctx.reply(
+      `¡Los puntos no han sido ${
+        ctx.match[1] === "add" ? "añadidos" : "eliminados"
+      }!`
+    );
     ctx.answerCbQuery();
   });
 
