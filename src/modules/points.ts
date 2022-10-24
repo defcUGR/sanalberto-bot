@@ -11,7 +11,6 @@ export default function pointsModule(
   prisma: PrismaClient
 ) {
   bot.command("add", async (ctx) => {
-    // Check if its admin
     requiresAdmin(ctx, prisma, async () => {
       const args = ctx.message.text.split(" ");
       // Parse points

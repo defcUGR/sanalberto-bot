@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bunyan from "bunyan";
 import { Telegraf } from "telegraf";
+import { requiresAdmin } from "../utils";
 
 export default function dbModule(
   bot: Telegraf,
@@ -8,13 +9,7 @@ export default function dbModule(
   prisma: PrismaClient
 ) {
   bot.command("crear_grado", async (ctx) => {
-    const is_admin = await prisma.admin.findUnique({
-      where: {
-        username: ctx.message.from.username,
-      },
-    });
-    if (is_admin === null) ctx.replyWithHTML("<b>COMANDO DE ADMINISTRADOR</b>");
-    else {
+    await requiresAdmin(ctx, prisma, async () => {
       const name = ctx.message.text.split(" ")[1];
       if (name === undefined)
         ctx.replyWithHTML(
@@ -43,6 +38,6 @@ export default function dbModule(
             )
           )
           .then(() => ctx.replyWithHTML("¡Grado registrado!"));
-    }
+    });
   });
 }

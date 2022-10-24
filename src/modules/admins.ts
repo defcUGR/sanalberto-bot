@@ -2,7 +2,7 @@ import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
 import { PrismaClient } from "@prisma/client";
 
-import { checkAdmin, requiresAdmin } from "../utils";
+import { requiresAdmin } from "../utils";
 
 export default function adminsModule(
   bot: Telegraf,

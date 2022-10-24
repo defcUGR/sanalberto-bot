@@ -8,23 +8,24 @@ export default function displayModule(
   prisma: PrismaClient
 ) {
   bot.command("ranking", async (ctx) => {
-    let html = "";
-    (await prisma.degree.findMany())
-      .sort((a, b) => (a.points < b.points ? 1 : -1))
-      .forEach((degree, index) => {
-        html = html.concat(
-          `${
-            index === 0
-              ? "\u{1F947}"
-              : index === 1
-              ? "\u{1F948}"
-              : index === 2
-              ? "\u{1F949}"
-              : "\u{1F19A}"
-          } ${degree.name} <code>${degree.points}</code>\n`
-        );
-      });
-    ctx.replyWithHTML("<b>\u{1F3C6} RANKING \u{1F3C6}</b>\n\n".concat(html));
+    ctx.replyWithHTML(
+      (await prisma.degree.findMany())
+        .sort((a, b) => (a.points < b.points ? 1 : -1))
+        .reduce(
+          (prev, curr, index) =>
+            prev +
+            `${
+              index === 0
+                ? "\u{1F947}"
+                : index === 1
+                ? "\u{1F948}"
+                : index === 2
+                ? "\u{1F949}"
+                : "\u{1F19A}"
+            } ${curr.name} <code>${curr.points}</code>\n`,
+          "<b>\u{1F3C6} RANKING \u{1F3C6}</b>\n\n"
+        )
+    );
   });
 
   bot.command("chart", async (ctx) => {
