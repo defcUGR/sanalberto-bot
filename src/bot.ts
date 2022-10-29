@@ -7,31 +7,15 @@ export class SanAlbertoBot {
   private logger: bunyan;
   private prisma: PrismaClient;
 
-  constructor() {
+  constructor(logger: bunyan, prisma: PrismaClient) {
     if (process.env.BOT_TOKEN === undefined) {
       throw new Error("Provide BOT_TOKEN environment variable to use");
     }
     this.bot = new Telegraf(process.env.BOT_TOKEN);
 
-    this.logger = bunyan.createLogger({
-      name: "sanalberto-bot",
-      streams: [
-        {
-          level: "trace",
-          stream: process.stdout,
-        },
-        {
-          level: "error",
-          path: "./error.log",
-        },
-        {
-          level: "trace",
-          path: "./trace.log",
-        },
-      ],
-    });
+    this.logger = logger;
 
-    this.prisma = new PrismaClient();
+    this.prisma = prisma;
   }
 
   implement(

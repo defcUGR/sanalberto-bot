@@ -1,6 +1,7 @@
 import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
 import { PrismaClient } from "@prisma/client";
+import { faker } from "@faker-js/faker";
 
 export default function displayModule(
   bot: Telegraf,
@@ -14,7 +15,7 @@ export default function displayModule(
         .reduce(
           (prev, curr, index) =>
             prev +
-            `${
+            `${index === 3 ? "\n" : ""}${
               index === 0
                 ? "\u{1F947}"
                 : index === 1
@@ -37,12 +38,96 @@ export default function displayModule(
     )}],datasets:[{label:'Puntos',data:[${degrees.map(
       (degree) => degree.points
     )}]}]}}`;
+
+    const barRawData = degrees.map(({ name, points }) => ({
+      name,
+      points,
+      color: faker.color.rgb(),
+      icon: faker.internet.emoji(),
+    }));
+
+    const minAxisValue = 35;
+    const minAxis = () =>
+      Math.floor(Math.max(...barRawData.map((d) => d.points))) >
+      minAxisValue * 2
+        ? Math.floor(Math.min(...barRawData.map((d) => d.points))) -
+          minAxisValue
+        : 0;
+
+    const genBarLabels = () =>
+      barRawData.sort((a, b) => b.points - a.points).map((d) => d.name);
+
+    const barLabels = genBarLabels();
+
+    const genBarDataset = () => ({
+      data: barRawData.map((d) => d.points).sort((a, b) => b - a),
+      borderColor: barRawData
+        .sort((a, b) => b.points - a.points)
+        .map((d) => d.color),
+      backgroundColor: barRawData
+        .sort((a, b) => b.points - a.points)
+        .map((d) => d.color),
+    });
+
+    const barData = {
+      labels: barLabels,
+      datasets: [genBarDataset()],
+    };
+
+    const config = {
+      type: "bar",
+      data: barData,
+      options: {
+        backgroundColor: "transparent",
+        indexAxis: "y" as const,
+        scales: {
+          yAxis: {
+            display: false,
+          },
+          xAxis: {
+            position: "top",
+            min: minAxis(),
+          },
+        },
+        plugins: {
+          tooltip: {
+            enabled: false,
+          },
+          legend: {
+            display: false,
+          },
+          datalabels: {
+            color: "white",
+            font: {
+              weight: 600,
+              size: 25,
+            },
+            formatter: (value, context) =>
+              barRawData[context.dataIndex].icon +
+              " " +
+              (context.chart.data.labels[context.dataIndex] || "undef") +
+              " " +
+              Math.floor(value) +
+              "   ",
+            align: "start",
+            anchor: "end",
+          },
+        },
+      },
+      plugins: ["ChartDataLabels"],
+    };
     logger.info(
       {
-        url,
+        url: `https://quickchart.io/chart?f=png&width=1000&height=600&c=${JSON.stringify(
+          config
+        )}`,
       },
       "Generated graph"
     );
-    ctx.replyWithDocument(url);
+    ctx.replyWithDocument(
+      `https://quickchart.io/chart?f=png&width=1000&height=600&c=${JSON.stringify(
+        config
+      )}`
+    );
   });
 }

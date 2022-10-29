@@ -11,7 +11,7 @@ export default function pointsModule(
   prisma: PrismaClient
 ) {
   bot.command("add", async (ctx) => {
-    requiresAdmin(ctx, prisma, async () => {
+    requiresAdmin(ctx, prisma, logger, async () => {
       const args = ctx.message.text.split(" ");
       // Parse points
       if (args[1] === undefined) {
@@ -118,7 +118,7 @@ export default function pointsModule(
   });
 
   bot.command("remove", async (ctx) => {
-    requiresAdmin(ctx, prisma, async () => {
+    requiresAdmin(ctx, prisma, logger, async () => {
       const args = ctx.message.text.split(" ");
       // Parse points
       if (args[1] === undefined) {

@@ -11,7 +11,7 @@ export default function adminsModule(
 ) {
   //* Add admins (must be super-admin)
   bot.command("add_admin", async (ctx) => {
-    await requiresAdmin(ctx, prisma, async () => {
+    await requiresAdmin(ctx, prisma, logger, async () => {
       const username = ctx.message.text.split(" ")[1].replace(/^@/, "");
       if (username === undefined)
         ctx.replyWithHTML(
@@ -95,7 +95,7 @@ export default function adminsModule(
 
   //* List admins (must be super-admin)
   bot.command("admins", async (ctx) => {
-    await requiresAdmin(ctx, prisma, async () => {
+    await requiresAdmin(ctx, prisma, logger, async () => {
       logger.info("Processing /admins");
       ctx.replyWithHTML(
         (await prisma.admin.findMany()).reduce(

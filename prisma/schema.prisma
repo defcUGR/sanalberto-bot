@@ -36,6 +36,8 @@ model Admin {
 
 model Actions {
   id Int @id @default(autoincrement())
-  message_id Int @unique
-  identifier String @unique
+  message_id Int @unique // Message id
+  identifier String @unique // Unique uuid
+  type String? // Type to differentiate actions
+  data String? // Custom data to include in the action
 }
