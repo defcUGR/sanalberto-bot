@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { Context } from "telegraf";
 import bunyan from "bunyan";
+import { DataBase } from "./db";
+import { Markup } from "telegraf";
+import { POINTS } from "./consts";
 
 export async function checkAdmin(
   ctx: Context,
@@ -26,11 +29,10 @@ export async function checkAdmin(
 
 export async function requiresAdmin(
   ctx: Context,
-  prisma: PrismaClient,
-  logger: bunyan,
-  fn: () => Promise<any>
+  db: DataBase,
+  fn: (ctx?: Context) => Promise<any>
 ) {
-  if (await checkAdmin(ctx, prisma, logger))
+  if (await db.isNotAdmin(ctx))
     ctx.replyWithHTML("<b>COMANDO DE ADMINISTRADOR</b>");
   else await fn();
 }
@@ -45,4 +47,22 @@ export const createGroupedArray = function (arr, chunkSize) {
 
 export function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export async function pointsButtons(
+  ctx: Context,
+  type: "add" | "remove",
+  uuid: string
+) {
+  await ctx.reply("Selecciona la cantidad de puntos a añadir", {
+    ...Markup.inlineKeyboard([
+      ...createGroupedArray(
+        POINTS.map((pts) =>
+          Markup.button.callback(pts.toString(), `${type}_${pts}_${uuid}`)
+        ),
+        2
+      ),
+      [Markup.button.callback("Cancelar", `${type}_cancel_${uuid}`)],
+    ]),
+  });
 }

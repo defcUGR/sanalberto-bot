@@ -1,13 +1,25 @@
 import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
 import { PrismaClient } from "@prisma/client";
+import { DataBase } from "./db";
+import { fromBuffer } from "telegraf/typings/input";
+import {
+  BotCommand,
+  BotCommandScope,
+  Update,
+} from "telegraf/typings/core/types/typegram";
+import { MaybeArray, NarrowedContext } from "telegraf/typings/composer";
+import { requiresAdmin } from "./utils";
+import Logger from "bunyan";
+import { Context } from "telegraf";
+import { MountMap } from "telegraf/typings/telegram-types";
 
 export class SanAlbertoBot {
   private bot: Telegraf;
   private logger: bunyan;
-  private prisma: PrismaClient;
+  private db: DataBase;
 
-  constructor(logger: bunyan, prisma: PrismaClient) {
+  constructor(logger: bunyan, db: DataBase) {
     if (process.env.BOT_TOKEN === undefined) {
       throw new Error("Provide BOT_TOKEN environment variable to use");
     }
@@ -15,29 +27,44 @@ export class SanAlbertoBot {
 
     this.logger = logger;
 
-    this.prisma = prisma;
+    this.db = db;
   }
 
-  implement(
-    fn: (bot: Telegraf, logger: bunyan, db: PrismaClient) => void
+  implementInner(
+    fn: (bot: Telegraf, logger: bunyan, db: DataBase) => void
   ): SanAlbertoBot {
-    fn(this.bot, this.logger, this.prisma);
+    fn(this.bot, this.logger, this.db);
+    return this;
+  }
+
+  implement(fn: (bot: CommandParams) => void): SanAlbertoBot {
+    fn({ bot: this, telegraf: this.bot, logger: this.logger, db: this.db });
     return this;
   }
 
   launch() {
+    // TODO Move this to general
     // Enable graceful stop
-    process.once("SIGINT", () => {
-      this.logger.info("Gracefully shutting down...");
-      this.bot.stop("SIGINT");
-      this.prisma.$disconnect();
-    });
-    process.once("SIGTERM", () => {
-      this.logger.info("Gracefully shutting down...");
-      this.bot.stop("SIGTERM");
-      this.prisma.$disconnect();
-    });
-
     this.bot.launch();
   }
+
+  adminCommand(key: MaybeArray<string>, fn: (ctx?: Ctx) => Promise<any>) {
+    this.bot.command(
+      key,
+      async (ctx) => await requiresAdmin(ctx, this.db, () => fn(ctx))
+    );
+  }
+
+  stop(flag: "SIGINT" | "SIGTERM") {
+    this.bot.stop(flag);
+  }
 }
+
+export type CommandParams = {
+  bot: SanAlbertoBot;
+  telegraf: Telegraf;
+  logger: Logger;
+  db: DataBase;
+};
+
+type Ctx = NarrowedContext<Context<Update>, MountMap["text"]>;

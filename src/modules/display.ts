@@ -2,15 +2,16 @@ import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
 import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
+import { DataBase } from "../db";
 
 export default function displayModule(
   bot: Telegraf,
   logger: bunyan,
-  prisma: PrismaClient
+  db: DataBase
 ) {
   bot.command("ranking", async (ctx) => {
     ctx.replyWithHTML(
-      (await prisma.degree.findMany())
+      (await db.prisma.degree.findMany())
         .sort((a, b) => (a.points < b.points ? 1 : -1))
         .reduce(
           (prev, curr, index) =>
@@ -30,7 +31,7 @@ export default function displayModule(
   });
 
   bot.command("chart", async (ctx) => {
-    const degrees = (await prisma.degree.findMany()).sort((a, b) =>
+    const degrees = (await db.prisma.degree.findMany()).sort((a, b) =>
       a.points < b.points ? 1 : -1
     );
     const url = `https://quickchart.io/chart?bkg=transparent&f=png&width=1000&height=600&c={type:'bar',data:{labels:[${degrees.map(
@@ -124,10 +125,10 @@ export default function displayModule(
       },
       "Generated graph"
     );
-    ctx.replyWithDocument(
-      `https://quickchart.io/chart?f=png&width=1000&height=600&c=${JSON.stringify(
-        config
-      )}`
-    );
+    // ctx.replyWithDocument(
+    //   `https://quickchart.io/chart?f=png&width=1000&height=600&c=${JSON.stringify(
+    //     config
+    //   )}`
+    // );
   });
 }

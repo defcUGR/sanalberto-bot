@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import Logger from "bunyan";
 import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
+import { DataBase } from "../db";
 
 let update = true;
 
@@ -9,11 +10,11 @@ export class SocketServer {
   private io: Server;
   private server: HttpServer;
   private logger: Logger;
-  private db: PrismaClient;
+  private db: DataBase;
 
-  constructor(logger: Logger, prisma: PrismaClient) {
+  constructor(logger: Logger, db: DataBase) {
     this.logger = logger;
-    this.db = prisma;
+    this.db = db;
 
     this.server = createServer();
     this.io = new Server(this.server, {
@@ -22,7 +23,7 @@ export class SocketServer {
   }
 
   connection(
-    fn: (socket: Socket, logger: Logger, db: PrismaClient) => void
+    fn: (socket: Socket, logger: Logger, db: DataBase) => void
   ): SocketServer {
     this.io.on("connection", (sock) => fn(sock, this.logger, this.db));
     return this;
@@ -36,7 +37,7 @@ export class SocketServer {
 export const socketConnectionFn = (
   socket: Socket,
   logger: Logger,
-  db: PrismaClient
+  db: DataBase
 ) => {
   logger.info({ socket }, "client connected to WS");
 

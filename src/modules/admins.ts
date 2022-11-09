@@ -1,40 +1,34 @@
 import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
-import { PrismaClient } from "@prisma/client";
 
 import { requiresAdmin } from "../utils";
+import { DataBase } from "../db";
 
 export default function adminsModule(
   bot: Telegraf,
   logger: bunyan,
-  prisma: PrismaClient
+  db: DataBase
 ) {
   //* Add admins (must be super-admin)
   bot.command("add_admin", async (ctx) => {
-    await requiresAdmin(ctx, prisma, logger, async () => {
+    await requiresAdmin(ctx, db, async () => {
       const username = ctx.message.text.split(" ")[1].replace(/^@/, "");
+      logger.trace({ username }, "registrando nuevo admin");
       if (username === undefined)
         ctx.replyWithHTML(
           "<b>ERROR</b> Tienes que proporcionar un nombre de usuario para añadir como administrador: <code>/add_admin &lt;username&gt;</code>"
         );
       else if (
-        (await prisma.admin.findUnique({
-          where: {
-            username,
-          },
-        })) !== null
+        (await db.prisma.admin.findUnique({ where: { username } })) !== null
       )
         ctx.replyWithHTML(
           "<b>ERROR</b> El administrador que intentas añadir ya está registrado como tal"
         );
       else {
-        prisma.admin
-          .create({
-            data: {
-              username,
-              added_by: ctx.message.from.username,
-            },
-          })
+        db.adminCreate({
+          username,
+          added_by: ctx.message.from.username,
+        })
           .catch((e) =>
             ctx.replyWithHTML(
               "<b>ERROR</b> Error interno, contacta con los desarrolladores @comic_ivans o @HipyCas"
@@ -51,17 +45,12 @@ export default function adminsModule(
 
   //* Remove admins (must be super-admin)
   bot.command("remove_admin", async (ctx) => {
-    const username = ctx.message.text.split(" ")[1].replace(/^@/, "");
-    if (
-      (await prisma.admin.findUnique({
-        where: {
-          username: ctx.message.from.username,
-        },
-      })) === null
-    )
+    const raw_username = ctx.message.text.split(" ")[1];
+    const username = (raw_username || "").replace(/^@/, "");
+    if (db.isNotAdmin(ctx))
       ctx.replyWithHTML("<b>COMANDO DE ADMINISTRADOR</b>");
     else {
-      if (username === undefined)
+      if (raw_username === undefined)
         ctx.replyWithHTML(
           "<b>ERROR</b> Tienes que proporcionar un nombre de usuario para eliminar como administrador: <code>/remove_admin &lt;username&gt;</code>"
         );
@@ -73,32 +62,24 @@ export default function adminsModule(
           "<b>ERROR</b> No se puede eliminar a este administrador"
         );
       else if (
-        (await prisma.admin.findUnique({
-          where: {
-            username,
-          },
-        })) === null
+        (await db.prisma.admin.findUnique({ where: { username } })) === null
       )
         ctx.replyWithHTML(
           "<b>ERROR</b> El administrador que intentas eliminar no está registrado ya"
         );
       else
-        prisma.admin
-          .delete({
-            where: {
-              username,
-            },
-          })
-          .then(() => ctx.reply("¡Administrador correctamente eliminado!"));
+        db.adminDelete({ username }).then(() =>
+          ctx.reply("¡Administrador correctamente eliminado!")
+        );
     }
   });
 
   //* List admins (must be super-admin)
   bot.command("admins", async (ctx) => {
-    await requiresAdmin(ctx, prisma, logger, async () => {
+    await requiresAdmin(ctx, db, async () => {
       logger.info("Processing /admins");
       ctx.replyWithHTML(
-        (await prisma.admin.findMany()).reduce(
+        (await db.admins()).reduce(
           (prev, curr) => (prev += "@" + curr.username + "\n"),
           "<b>ADMINS</b>\n"
         )
