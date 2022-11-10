@@ -1,8 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import bunyan from "bunyan";
 import { Telegraf } from "telegraf";
-import { checkAdmin } from "../utils";
-import { v4 as uuidv4 } from "uuid";
 import { AdminTokenVerification, DataBase } from "../db";
 
 export default function baseModule(

@@ -1,13 +1,8 @@
-import { PrismaClient } from "@prisma/client";
-import bunyan from "bunyan";
-import { Telegraf, Markup } from "telegraf";
+import { Markup } from "telegraf";
 
-import { requiresAdmin, createGroupedArray, pointsButtons } from "../utils";
+import { createGroupedArray, pointsButtons } from "../utils";
 import { v4 as uuidv4 } from "uuid";
-import { DataBase, PointManagement } from "../db";
 import { CommandParams } from "../bot";
-import { POINTS } from "../consts";
-import { match } from "assert";
 
 export default function pointsModule({
   bot,
@@ -179,17 +174,15 @@ export default function pointsModule({
   );
 
   telegraf.action(/(add|remove)_cancel_(.+)/, async (ctx) => {
-    logger.trace({
-      matches: ctx.match,
-      action: ctx.match[1],
-      uuid: ctx.match[2],
-    });
-    const action = await db.prisma.actions.findUnique({
-      where: {
-        identifier: ctx.match[2],
+    logger.trace(
+      {
+        matches: ctx.match,
+        action: ctx.match[1],
+        uuid: ctx.match[2],
       },
-    });
-    if (action !== null) ctx.deleteMessage(action.message_id);
+      "cancel"
+    );
+    ctx.deleteMessage(ctx.callbackQuery.message.message_id);
     ctx.reply(
       `¡Los puntos no han sido ${
         ctx.match[1] === "add" ? "añadidos" : "eliminados"

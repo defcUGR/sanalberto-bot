@@ -8,7 +8,6 @@ import adminsModule from "./modules/admins";
 import dbModule from "./modules/db";
 import pointsModule from "./modules/points";
 import displayModule from "./modules/display";
-import { PrismaClient } from "@prisma/client";
 import { socketConnectionFn, SocketServer } from "./socket";
 import { DataBase } from "./db";
 import { handleExit } from "./process";

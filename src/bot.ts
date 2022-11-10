@@ -1,13 +1,7 @@
 import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
-import { PrismaClient } from "@prisma/client";
 import { DataBase } from "./db";
-import { fromBuffer } from "telegraf/typings/input";
-import {
-  BotCommand,
-  BotCommandScope,
-  Update,
-} from "telegraf/typings/core/types/typegram";
+import { Update } from "telegraf/typings/core/types/typegram";
 import { MaybeArray, NarrowedContext } from "telegraf/typings/composer";
 import { requiresAdmin } from "./utils";
 import Logger from "bunyan";

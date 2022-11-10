@@ -1,6 +1,5 @@
 import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
-import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import { DataBase } from "../db";
 
