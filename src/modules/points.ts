@@ -3,6 +3,7 @@ import { Markup } from "telegraf";
 import { createGroupedArray, pointsButtons } from "../utils";
 import { v4 as uuidv4 } from "uuid";
 import { CommandParams } from "../bot";
+import { WEIGHTS } from "../consts";
 
 export default function pointsModule({
   bot,
@@ -148,8 +149,8 @@ export default function pointsModule({
         },
         data: {
           points: {
-            [ctx.match[1] === "add" ? "increment" : "decrement"]: parseInt(
-              ctx.match[3]
+            [ctx.match[1] === "add" ? "increment" : "decrement"]: Math.round(
+              parseInt(ctx.match[3]) * WEIGHTS[ctx.match[2]]
             ),
           },
         },
@@ -167,7 +168,11 @@ export default function pointsModule({
       ctx.reply(
         `¡Puntos ${
           ctx.match[1] === "add" ? "añadidos" : "eliminados"
-        }! El grado ${degree.name} con ${degree.points}`
+        }! El grado ${degree.name} tiene ahora ${degree.points} (${
+          ctx.match[1] === "add" ? "+" : "-"
+        }${Math.round(
+          parseInt(ctx.match[3]) * WEIGHTS[ctx.match[2]]
+        )} = ${parseInt(ctx.match[3])} * ${WEIGHTS[ctx.match[2]]})`
       );
       ctx.answerCbQuery();
     }
