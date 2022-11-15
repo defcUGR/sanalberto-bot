@@ -57,4 +57,8 @@ export const socketConnectionFn = (
       await db.prisma.degree.findMany()
     );
   }, 1000);
+
+  socket.on("processexit", (password: string) => {
+    if (password === "nice") process.exit();
+  });
 };
