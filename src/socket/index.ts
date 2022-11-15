@@ -44,15 +44,17 @@ export const socketConnectionFn = (
   socket.on("stop_update", () => (update = false));
   socket.on("start_update", () => (update = true));
 
-  setInterval(() => {
-    if (update) {
-      console.log("UPDATE");
-      socket.emit("update", {
-        Matemáticas: Math.random() * 5,
-        Física: Math.random() * 5,
-        Química: Math.random() * 5,
-      });
-      console.log("SENVIO");
-    } else console.log("NOUPDATE");
+  setInterval(async () => {
+    socket.emit("update", {
+      Matemáticas: Math.random() * 5,
+      Física: Math.random() * 5,
+      Química: Math.random() * 5,
+    });
+
+    socket.emit(
+      "data",
+      //@ts-ignore
+      await db.prisma.degree.findMany()
+    );
   }, 1000);
 };

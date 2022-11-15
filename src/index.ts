@@ -11,6 +11,7 @@ import displayModule from "./modules/display";
 import { socketConnectionFn, SocketServer } from "./socket";
 import { DataBase } from "./db";
 import { handleExit } from "./process";
+import { portFromEnv } from "./utils";
 
 dotenv.config();
 
@@ -51,7 +52,7 @@ const server = new SocketServer(
   logger.child({ component: "socket" }),
   db
 ).connection(socketConnectionFn);
-server.launch(3000);
+server.launch(portFromEnv("SOCKET_PORT", "socket server"));
 
 logger.info("Server launched");
 

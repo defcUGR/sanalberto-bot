@@ -66,3 +66,15 @@ export async function pointsButtons(
     ]),
   });
 }
+
+export function portFromEnv(key: string, reason: string) {
+  const value = process.env[key];
+  if (value === undefined)
+    throw new Error(`Env var ${key} not set and required for ${reason} port`);
+  const num = parseInt(value);
+  if (isNaN(num))
+    throw new Error(
+      `Env var ${key} is not a number and must be for ${reason} port`
+    );
+  return num;
+}
