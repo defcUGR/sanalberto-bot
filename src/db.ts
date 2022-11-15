@@ -105,13 +105,13 @@ export class DataBase {
       })
       .then((res) => {
         this.logger.trace(
-          { action, res, ...log_data.success },
+          { action, res, ...log_data?.success },
           "removed used action"
         );
       })
       .catch((err) => {
         this.logger.error(
-          { err, action, ...log_data.error },
+          { err, action, ...log_data?.error },
           "internal error when removing action"
         );
       });
