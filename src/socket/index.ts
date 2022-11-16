@@ -2,11 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import Logger from "bunyan";
 import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
+import { default as express, Express } from "express";
+
 import { DataBase } from "../db";
 
 let update = true;
 
 export class SocketServer {
+  private app: Express;
   private io: Server;
   private server: HttpServer;
   private logger: Logger;
@@ -16,9 +19,14 @@ export class SocketServer {
     this.logger = logger;
     this.db = db;
 
-    this.server = createServer();
+    this.app = express();
+    this.server = createServer(this.app);
     this.io = new Server(this.server, {
       // options
+    });
+
+    this.app.get("/", (req, res) => {
+      res.send("Hi");
     });
   }
 
