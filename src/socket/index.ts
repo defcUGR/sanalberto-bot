@@ -38,7 +38,7 @@ export class SocketServer {
   }
 
   launch(port: number) {
-    this.server.listen(3000);
+    this.server.listen(port);
   }
 }
 
