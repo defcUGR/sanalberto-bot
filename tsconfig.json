@@ -3,7 +3,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "esModuleInterop": true,
-    "lib": ["ES6"],
-    "module": "CommonJS"
+    "lib": ["ESNext"],
+    "module": "CommonJS",
+    "target": "ES6"
   }
 }
