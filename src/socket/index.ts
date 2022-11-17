@@ -63,7 +63,7 @@ export class SocketServer {
     });
 
     this.app.use(
-      "assets",
+      "/assets",
       express.static(path.join(__dirname + "../../web/dist/assets"))
     );
   }
