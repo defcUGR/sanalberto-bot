@@ -30,10 +30,6 @@ export class SocketServer {
       },
     });
 
-    this.app.get("/", (req, res) => {
-      res.send("Hi");
-    });
-
     this.app.get("/ranking", async (req, res) => {
       const browser = await puppeteer.launch();
       const page = await browser.newPage();
@@ -55,6 +51,10 @@ export class SocketServer {
       });
 
       res.end(buffer);
+    });
+
+    this.app.get("/*", async (req, res) => {
+      res.sendFile("../../web/dist/index.html");
     });
   }
 
