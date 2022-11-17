@@ -54,6 +54,7 @@ export class SocketServer {
     });
 
     this.app.get("/*", async (req, res) => {
+      this.logger.trace("requesting index");
       res.sendFile("../../web/dist/index.html");
     });
   }
