@@ -11,7 +11,7 @@ import { onMounted, ref } from "vue";
 import type { ChartConfiguration, ChartData, ChartDataset } from "chart.js";
 import { Chart, registerables } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import { socket } from "@/socket";
+import { socket } from "../socket";
 
 const lineMaxData = 20;
 
