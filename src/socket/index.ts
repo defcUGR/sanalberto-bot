@@ -31,6 +31,10 @@ export class SocketServer {
       },
     });
 
+    this.app.use(
+      express.static(path.join(__dirname + "../../web/dist/assets"))
+    );
+
     this.app.get("/ranking", async (req, res) => {
       const browser = await puppeteer.launch();
       const page = await browser.newPage();
