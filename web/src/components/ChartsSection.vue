@@ -1,7 +1,7 @@
 <template>
   <section id="charts">
     <canvas ref="lineCanvas"></canvas>
-    <canvas ref="barCanvas" id="rankingCanvas"></canvas>
+    <canvas ref="barCanvas" id="rankingCanvas" height="600"></canvas>
   </section>
 </template>
 
@@ -292,7 +292,7 @@ const barConfig: ChartConfiguration = {
         display: false,
       },
       datalabels: {
-        color: "white",
+        color: "#0f172a",
         font: {
           weight: 600,
           size: 25,
