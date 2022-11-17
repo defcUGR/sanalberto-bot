@@ -6,6 +6,7 @@ import { default as express, Express } from "express";
 import puppeteer from "puppeteer";
 import cors from "cors";
 import path from "node:path";
+import history from "connect-history-api-fallback";
 
 import { DataBase } from "../db";
 
@@ -31,10 +32,17 @@ export class SocketServer {
       },
     });
 
+    const middleware = express.static(path.join(__dirname, "../../web/dist"));
+
+    this.app.use(middleware);
+
     this.app.use(
-      "/assets",
-      express.static(path.join(__dirname + "../../web/dist/assets"))
+      history({
+        index: "/index.html",
+      })
     );
+
+    this.app.use(middleware);
 
     this.app.get("/ranking", async (req, res) => {
       const browser = await puppeteer.launch();
@@ -57,14 +65,6 @@ export class SocketServer {
       });
 
       res.end(buffer);
-    });
-
-    this.app.get(/^((?!assets).)*$/, async (req, res, next) => {
-      this.logger.trace(
-        { file: path.join(__dirname, "../../web/dist/index.html") },
-        "requesting index"
-      );
-      res.sendFile(path.join(__dirname, "../../web/dist/index.html"));
     });
   }
 
