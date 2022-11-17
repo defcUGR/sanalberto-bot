@@ -59,7 +59,7 @@ export class SocketServer {
       res.end(buffer);
     });
 
-    this.app.get("/*", async (req, res) => {
+    this.app.get(/^((?!assets).)*$/, async (req, res, next) => {
       this.logger.trace(
         { file: path.join(__dirname, "../../web/dist/index.html") },
         "requesting index"
