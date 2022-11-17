@@ -9,6 +9,7 @@ import path from "node:path";
 import history from "connect-history-api-fallback";
 
 import { DataBase } from "../db";
+import { setInterval } from "timers";
 
 let update = true;
 
@@ -92,18 +93,14 @@ export const socketConnectionFn = (
   socket.on("start_update", () => (update = true));
 
   setInterval(async () => {
-    socket.emit("update", {
-      Matemáticas: Math.random() * 5,
-      Física: Math.random() * 5,
-      Química: Math.random() * 5,
-    });
-
     socket.emit(
       "data",
       //@ts-ignore
       await db.prisma.degree.findMany()
     );
+  }, 500);
 
+  setInterval(async () => {
     socket.emit(
       "dataobject",
       Object.fromEntries(
@@ -114,7 +111,7 @@ export const socketConnectionFn = (
         ).map(({ name, points }) => [name, points])
       )
     );
-  }, 1000);
+  }, 1500);
 
   socket.on("processexit", (password: string) => {
     if (password === "nice") process.exit();
