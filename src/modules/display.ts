@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import bunyan from "bunyan";
 import { faker } from "@faker-js/faker";
 import { DataBase } from "../db";
+import puppeteer from "puppeteer";
 
 export default function displayModule(
   bot: Telegraf,
@@ -33,6 +34,7 @@ export default function displayModule(
     const degrees = (await db.prisma.degree.findMany()).sort((a, b) =>
       a.points < b.points ? 1 : -1
     );
+
     const url = `https://quickchart.io/chart?bkg=transparent&f=png&width=1000&height=600&c={type:'bar',data:{labels:[${degrees.map(
       (degree) => "'" + degree.name + "'"
     )}],datasets:[{label:'Puntos',data:[${degrees.map(
@@ -124,6 +126,8 @@ export default function displayModule(
       },
       "Generated graph"
     );
+
+    ctx.replyWithDocument("https://defc.wupp.dev/ranking");
     // ctx.replyWithDocument(
     //   `https://quickchart.io/chart?f=png&width=1000&height=600&c=${JSON.stringify(
     //     config

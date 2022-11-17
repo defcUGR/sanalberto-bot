@@ -3,6 +3,8 @@ import Logger from "bunyan";
 import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { default as express, Express } from "express";
+import puppeteer from "puppeteer";
+import cors from "cors";
 
 import { DataBase } from "../db";
 
@@ -20,13 +22,39 @@ export class SocketServer {
     this.db = db;
 
     this.app = express();
+    this.app.use(cors());
     this.server = createServer(this.app);
     this.io = new Server(this.server, {
-      // options
+      cors: {
+        origin: "*",
+      },
     });
 
     this.app.get("/", (req, res) => {
       res.send("Hi");
+    });
+
+    this.app.get("/ranking", async (req, res) => {
+      const browser = await puppeteer.launch();
+      const page = await browser.newPage();
+      // page.goto("https://defc.wupp.dev/");
+      page.goto("http://localhost:5173");
+      const watchDog = page.waitForFunction('window.status === "ready"');
+      await watchDog;
+      const data = await page.evaluate(() => {
+        //@ts-ignore
+        return document.querySelector("#rankingCanvas").toDataURL();
+      });
+      const buffer = Buffer.from(
+        data.replace(/^data:image\/\w+;base64,/, ""),
+        "base64"
+      );
+      res.writeHead(200, {
+        "Content-Type": "image/png",
+        "Content-Length": buffer.length,
+      });
+
+      res.end(buffer);
     });
   }
 
@@ -63,6 +91,17 @@ export const socketConnectionFn = (
       "data",
       //@ts-ignore
       await db.prisma.degree.findMany()
+    );
+
+    socket.emit(
+      "dataobject",
+      Object.fromEntries(
+        (
+          await db.prisma.degree.findMany({
+            select: { name: true, points: true },
+          })
+        ).map(({ name, points }) => [name, points])
+      )
     );
   }, 1000);
 

@@ -93,4 +93,6 @@ export default function baseModule(
           : "")
     )
   ); // Make different if its admin
+
+  bot.hears("<3", (ctx) => ctx.reply(":3"));
 }
