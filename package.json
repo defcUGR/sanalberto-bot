@@ -14,6 +14,7 @@
     "@faker-js/faker": "^7.6.0",
     "@prisma/client": "^4.4.0",
     "bunyan": "^1.8.15",
+    "connect-history-api-fallback": "^2.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
