@@ -47,9 +47,7 @@ export default function adminsModule(
   bot.command("remove_admin", async (ctx) => {
     const raw_username = ctx.message.text.split(" ")[1];
     const username = (raw_username || "").replace(/^@/, "");
-    if (db.isNotAdmin(ctx))
-      ctx.replyWithHTML("<b>COMANDO DE ADMINISTRADOR</b>");
-    else {
+    await requiresAdmin(ctx, db, async () => {
       if (raw_username === undefined)
         ctx.replyWithHTML(
           "<b>ERROR</b> Tienes que proporcionar un nombre de usuario para eliminar como administrador: <code>/remove_admin &lt;username&gt;</code>"
@@ -71,7 +69,7 @@ export default function adminsModule(
         db.adminDelete({ username }).then(() =>
           ctx.reply("¡Administrador correctamente eliminado!")
         );
-    }
+    });
   });
 
   //* List admins (must be super-admin)
