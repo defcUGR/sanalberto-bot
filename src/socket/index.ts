@@ -76,6 +76,7 @@ export class SocketServer {
   }
 
   launch(port: number) {
+    this.logger.info({ port }, "Socket launched");
     this.server.listen(port);
   }
 }
