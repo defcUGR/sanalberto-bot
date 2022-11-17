@@ -7,6 +7,7 @@
       <p
         class="absolute -top-16 text-slate-50 text-xl lg:text-2xl font-semibold w-full text-center"
       >
+      <!--@ts-gnore -->
         <img :src="icons[top[1].name]" class="inline h-6 mr-2 mb-1.5" />
         {{ top[1].name }}
       </p>
