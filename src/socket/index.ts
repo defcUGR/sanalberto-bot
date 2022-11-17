@@ -5,6 +5,7 @@ import { Server, Socket } from "socket.io";
 import { default as express, Express } from "express";
 import puppeteer from "puppeteer";
 import cors from "cors";
+import path from "node:path";
 
 import { DataBase } from "../db";
 
@@ -54,8 +55,11 @@ export class SocketServer {
     });
 
     this.app.get("/*", async (req, res) => {
-      this.logger.trace("requesting index");
-      res.sendFile("../../web/dist/index.html");
+      this.logger.trace(
+        { file: path.join(__dirname, "../../web/dist/index.html") },
+        "requesting index"
+      );
+      res.sendFile(path.join(__dirname, "../../web/dist/index.html"));
     });
   }
 
