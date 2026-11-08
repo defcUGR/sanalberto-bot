@@ -2,7 +2,7 @@
 import { computed } from "vue";
 
 import { degreeIcon } from "@/degrees";
-import { degrees } from "@/socket";
+import { ranking } from "@/ranking";
 
 interface Step {
   medal: string;
@@ -12,10 +12,6 @@ interface Step {
 }
 
 const PLACEHOLDER = "Cargando...";
-
-const ranking = computed(() =>
-  [...degrees.value].sort((a, b) => b.points - a.points),
-);
 
 const step = (place: number, medal: string, bar: string): Step => {
   const row = ranking.value[place];
@@ -33,9 +29,7 @@ const steps = computed<Step[]>(() => [
 </script>
 
 <template>
-  <section
-    class="-ml-4 flex w-screen items-end justify-center gap-2 py-36 lg:gap-3"
-  >
+  <section class="flex items-end justify-center gap-2 pt-36 pb-12 lg:gap-3">
     <div
       v-for="(s, i) in steps"
       :key="i"

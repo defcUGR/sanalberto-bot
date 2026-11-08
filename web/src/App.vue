@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import ChartsSection from "./components/ChartsSection.vue";
-import PodiumSection from "./components/PodiumSection.vue";
+import RevealCeremony from "./components/RevealCeremony.vue";
+import DashboardView from "./views/DashboardView.vue";
+import ProjectorView from "./views/ProjectorView.vue";
+
+// The backend falls back to index.html for unknown paths, so a tiny check on
+// the path is enough: no router needed for two screens.
+const isProjector =
+  window.location.pathname.replace(/\/+$/, "").toLowerCase() === "/proyector";
 </script>
 
 <template>
-  <header
-    class="fixed top-0 z-50 flex h-16 w-screen items-center justify-center bg-slate-800/20 backdrop-blur-lg"
-  >
-    <strong class="text-xl font-bold text-slate-50">Carrera de Carreras</strong>
-  </header>
-  <main class="relative z-0 overflow-x-hidden bg-slate-900 p-4 pt-20">
-    <PodiumSection />
-    <ChartsSection />
-  </main>
+  <ProjectorView v-if="isProjector" />
+  <DashboardView v-else />
+  <RevealCeremony />
 </template>
