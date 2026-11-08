@@ -1,0 +1,46 @@
+# Bot de Telegram + web en directo (defc.wupp.dev). La imagen la publica
+# scripts/deploy.sh; en el servidor este archivo va junto a su .env y la
+# carpeta data/ (con data.db, propiedad del uid 1001).
+
+services:
+  sanalberto-bot:
+    # scripts/deploy.sh fija la etiqueta exacta en SANALBERTO_IMAGE.
+    image: ${SANALBERTO_IMAGE:-ghcr.io/comicivans/sanalberto-bot:latest}
+    container_name: sanalberto-bot
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    # BOT_TOKEN, ADMIN_TOKEN, EDITION_YEAR, SUPERADMINS, TZ... (ver .env.example)
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: file:/data/data.db
+      SOCKET_HOST: 0.0.0.0
+      SOCKET_PORT: '3000'
+    # Solo en local: nginx del servidor es la entrada pública.
+    ports:
+      - '127.0.0.1:${SANALBERTO_PORT:-3000}:3000'
+    volumes:
+      - ${SANALBERTO_DATA_DIR:-./data}:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          '/nodejs/bin/node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
