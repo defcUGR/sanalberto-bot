@@ -1,46 +1,27 @@
 # sanalberto-web
 
-This template should help get you started developing with Vue 3 in Vite.
+Panel "Carrera de Carreras": Vue 3 + Vite + Chart.js + Tailwind CSS. El backend
+(Express + socket.io, en la raíz del repositorio) sirve `web/dist` y envía los
+datos por socket.io (`data` y `dataobject`) al conectar y cuando cambian los puntos.
 
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
-
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
-
-1. Disable the built-in TypeScript Extension
-    1) Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-    2) Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
+## Desarrollo
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+El servidor de Vite reenvía `/socket.io` (incluido WebSocket) al backend.
+Por defecto `http://localhost:57630`; se puede cambiar con `VITE_BACKEND_URL`
+(variable de entorno o `web/.env.local`):
 
 ```sh
-npm run build
+VITE_BACKEND_URL=http://localhost:57630 npm run dev
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+## Compilación
 
 ```sh
-npm run lint
+npm run build   # comprobación de tipos (vue-tsc) + vite build -> dist/
+npm run lint    # ESLint (flat config) + Prettier
 ```

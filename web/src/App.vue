@@ -5,14 +5,12 @@ import PodiumSection from "./components/PodiumSection.vue";
 
 <template>
   <header
-    class="fixed top-0 z-50 w-screen h-16 bg-slate-800 bg-opacity-20 backdrop-filter backdrop-blur-lg flex justify-center items-center"
+    class="fixed top-0 z-50 flex h-16 w-screen items-center justify-center bg-slate-800/20 backdrop-blur-lg"
   >
-    <strong class="text-slate-50 text-xl font-bold">Carrera de Carreras</strong>
+    <strong class="text-xl font-bold text-slate-50">Carrera de Carreras</strong>
   </header>
-  <main class="bg-slate-900 z-0 relative p-4 pt-20 overflow-x-hidden">
-    <PodiumSection></PodiumSection>
-    <ChartsSection></ChartsSection>
+  <main class="relative z-0 overflow-x-hidden bg-slate-900 p-4 pt-20">
+    <PodiumSection />
+    <ChartsSection />
   </main>
 </template>
-
-<style scoped></style>
