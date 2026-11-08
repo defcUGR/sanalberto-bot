@@ -4,3 +4,6 @@ node_modules/
 *.db
 *.db-journal
 *.log
+src/generated/
+.env.deploy
+.claude/

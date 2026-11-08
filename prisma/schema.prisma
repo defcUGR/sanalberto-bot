@@ -1,43 +1,79 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema. The database URL comes from prisma.config.ts (CLI) and from
+// src/db.ts (runtime adapter), both reading DATABASE_URL.
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 model Degree {
-  id Int @id @default(autoincrement())
-  name String @unique
-  points Int @default(0)
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  points Int     @default(0)
+  // Multiplier applied to the points an admin adds or removes, so smaller
+  // degrees can compete (<min points> / <degree points>).
+  weight Float   @default(1)
   events Event[]
 }
 
 model Event {
-  id Int @id @default(autoincrement())
-  degree_id Int
-  Degree Degree @relation(fields: [degree_id], references: [id])
+  id         Int      @id @default(autoincrement())
+  degree_id  Int
+  Degree     Degree   @relation(fields: [degree_id], references: [id], onDelete: Cascade)
+  edition_id Int
+  Edition    Edition  @relation(fields: [edition_id], references: [id], onDelete: Cascade)
   timestamp DateTime @default(now())
-  points Int
-  type Int // 0 for substraction, 1 for addition
-  username String
+  // Points actually applied (after the weight and the floor at 0).
+  points    Int
+  type      Int // 0 for substraction, 1 for addition
+  username  String
+}
+
+// One per year. The open one (closed_at null) is the current edition; closed
+// ones keep their final standings in EditionResult and their history in Event.
+model Edition {
+  id              Int             @id @default(autoincrement())
+  year            Int             @unique
+  started_at      DateTime        @default(now())
+  closed_at       DateTime?
+  // While set, the public scoreboard shows frozen_snapshot (Degree rows as
+  // JSON) and only the movements up to this moment.
+  frozen_at       DateTime?
+  frozen_snapshot String?
+  events          Event[]
+  results         EditionResult[]
+}
+
+model EditionResult {
+  id         Int     @id @default(autoincrement())
+  edition_id Int
+  Edition    Edition @relation(fields: [edition_id], references: [id], onDelete: Cascade)
+  position   Int
+  degree     String
+  points     Int
+
+  @@unique([edition_id, degree])
 }
 
 model Admin {
-  id Int @id @default(autoincrement())
-  username String @unique
-  date_added DateTime @default(now())
-  added_by String 
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  // Telegram user id, bound the first time the admin talks to the bot:
+  // usernames can be changed or reassigned, ids cannot.
+  telegram_id BigInt?  @unique
+  date_added  DateTime @default(now())
+  added_by    String
 }
 
 model Actions {
-  id Int @id @default(autoincrement())
-  message_id Int @unique // Message id
-  identifier String @unique // Unique uuid
-  type String? // Type to differentiate actions
-  data String? // Custom data to include in the action
+  id         Int     @id @default(autoincrement())
+  message_id Int     @unique // Message id
+  identifier String  @unique // Unique uuid
+  type       String? // Type to differentiate actions
+  data       String? // Custom data to include in the action
 }

@@ -1,60 +1,97 @@
-import { PrismaClient } from "@prisma/client";
-import bunyan from "bunyan";
-import { Telegraf } from "telegraf";
-import { DataBase } from "../db";
-import { requiresAdmin } from "../utils";
+import type { BotModule } from "../bot";
+import {
+  commandArgs,
+  escapeHtml,
+  formatNumber,
+  parseNumber,
+  requireAdmin,
+  requireSuperAdmin,
+  who,
+} from "../telegram";
 
-export default function dbModule(bot: Telegraf, logger: bunyan, db: DataBase) {
+// Degrees: create, delete and weights. Editions are in modules/editions.ts.
+
+/** Splits "Ing. Química 2,4" into the name and an optional trailing number. */
+function nameAndNumber(args: string): { name: string; value: number | null } {
+  const parts = args.split(/\s+/).filter(Boolean);
+  const last = parseNumber(parts.at(-1));
+  if (parts.length > 1 && last !== null) return { name: parts.slice(0, -1).join(" "), value: last };
+  return { name: parts.join(" "), value: null };
+}
+
+const degreesModule: BotModule = (bot, deps) => {
+  const { db, live } = deps;
+
   bot.command("crear_grado", async (ctx) => {
-    ctx.replyWithHTML("<b>FUNCIÓN DESHABILITADA</b>");
-    // await requiresAdmin(ctx, db, async () => {
-    //   const name = ctx.message.text.split(" ").slice(1).join(" ");
-    //   if (name === undefined)
-    //     ctx.replyWithHTML(
-    //       "<b>ERROR</b> Tienes que proporcionar un nombre para crear un grado: <code>/crear_grado &lt;nombre&gt;</code>"
-    //     );
-    //   else if ((await db.degree({ name })) !== null)
-    //     ctx.replyWithHTML(
-    //       "<b>ERROR</b> El grado que intentas añadir ya está registrado como tal"
-    //     );
-    //   else
-    //     db.degreeCreate({ name }, { success: { created_by: ctx.message.from } })
-    //       .catch((e) =>
-    //         ctx.replyWithHTML(
-    //           "<b>ERROR</b> Error interno, contacta con los desarrolladores @comic_ivans o @HipyCas"
-    //         )
-    //       )
-    //       .then(() => ctx.replyWithHTML("¡Grado registrado!"));
-    // });
+    if (!(await requireAdmin(ctx, deps))) return;
+    const { name, value } = nameAndNumber(commandArgs(ctx));
+    if (!name) {
+      await ctx.replyWithHTML(
+        "<b>ERROR</b> Tienes que proporcionar un nombre para crear un grado: <code>/crear_grado &lt;nombre&gt; [peso]</code>"
+      );
+      return;
+    }
+    if (name.length > 30) {
+      await ctx.replyWithHTML("<b>ERROR</b> El nombre puede tener como máximo 30 caracteres");
+      return;
+    }
+    if (await db.degreeByName(name)) {
+      await ctx.replyWithHTML("<b>ERROR</b> Ese grado ya está registrado");
+      return;
+    }
+    const weight = value ?? 1;
+    if (weight <= 0) {
+      await ctx.replyWithHTML("<b>ERROR</b> El peso tiene que ser mayor que 0");
+      return;
+    }
+    await db.createDegree(name, weight, who(ctx));
+    await live.refresh();
+    await ctx.replyWithHTML(`¡Grado <b>${escapeHtml(name)}</b> registrado con peso ${formatNumber(weight)}!`);
   });
 
   bot.command("eliminar_grado", async (ctx) => {
-    ctx.replyWithHTML("<b>FUNCIÓN DESHABILITADA</b>");
-    // await requiresAdmin(ctx, db, async () => {
-    //   const name = ctx.message.text.split(" ").slice(1).join(" ");
-    //   if (name === undefined)
-    //     ctx.replyWithHTML(
-    //       "<b>ERROR</b> Tienes que proporcionar un nombre para eliminar un grado: <code>/eliminar_grado &lt;nombre&gt;</code>"
-    //     );
-    //   else if ((await db.degree({ name })) === null)
-    //     ctx.replyWithHTML(
-    //       "<b>ERROR</b> El grado que intentas eliminar no está registrado como tal"
-    //     );
-    //   else
-    //     db.degreeDelete(
-    //       { name },
-    //       {
-    //         success: { action_by: ctx.message.from },
-    //         error: { action_by: ctx.message.from },
-    //       }
-    //     )
-    //       // TODO Log error here
-    //       .catch((e) =>
-    //         ctx.replyWithHTML(
-    //           "<b>ERROR</b> Error interno, contacta con los desarrolladores @comic_ivans o @HipyCas"
-    //         )
-    //       )
-    //       .then(() => ctx.replyWithHTML("¡Grado eliminado!"));
-    // });
+    if (!(await requireSuperAdmin(ctx, deps))) return;
+    const name = commandArgs(ctx);
+    if (!name) {
+      await ctx.replyWithHTML(
+        "<b>ERROR</b> Tienes que proporcionar un nombre para eliminar un grado: <code>/eliminar_grado &lt;nombre&gt;</code>"
+      );
+      return;
+    }
+    if (!(await db.degreeByName(name))) {
+      await ctx.replyWithHTML("<b>ERROR</b> Ese grado no está registrado");
+      return;
+    }
+    await db.deleteDegree(name, who(ctx));
+    await live.refresh();
+    await ctx.replyWithHTML(`¡Grado <b>${escapeHtml(name)}</b> eliminado!`);
   });
-}
+
+  bot.command("pesos", async (ctx) => {
+    if (!(await requireAdmin(ctx, deps))) return;
+    const degrees = [...(await db.degrees())].sort((a, b) => a.name.localeCompare(b.name));
+    await ctx.replyWithHTML(
+      "<b>PESOS</b> (puntos que recibe cada carrera por cada punto concedido)\n\n" +
+        degrees.map((d) => `${escapeHtml(d.name)}: <code>${formatNumber(d.weight)}</code>`).join("\n")
+    );
+  });
+
+  bot.command("peso", async (ctx) => {
+    if (!(await requireAdmin(ctx, deps))) return;
+    const { name, value } = nameAndNumber(commandArgs(ctx));
+    if (!name || value === null || value <= 0) {
+      await ctx.replyWithHTML(
+        "<b>ERROR</b> Uso: <code>/peso &lt;carrera&gt; &lt;peso&gt;</code>, con un peso mayor que 0 (por ejemplo <code>/peso Física 1,4</code>)"
+      );
+      return;
+    }
+    if (!(await db.degreeByName(name))) {
+      await ctx.replyWithHTML("<b>ERROR</b> Ese grado no está registrado");
+      return;
+    }
+    const degree = await db.setWeight(name, value, who(ctx));
+    await ctx.replyWithHTML(`Peso de <b>${escapeHtml(degree.name)}</b>: ${formatNumber(degree.weight)}`);
+  });
+};
+
+export default degreesModule;
