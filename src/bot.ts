@@ -4,6 +4,7 @@ import adminsModule from "./modules/admins";
 import baseModule from "./modules/base";
 import degreesModule from "./modules/db";
 import displayModule from "./modules/display";
+import editionsModule from "./modules/editions";
 import historyModule from "./modules/history";
 import pointsModule from "./modules/points";
 import { INTERNAL_ERROR, type BotDeps } from "./telegram";
@@ -30,6 +31,7 @@ export function createBot(deps: BotDeps): Telegraf {
     degreesModule,
     pointsModule,
     historyModule,
+    editionsModule,
     displayModule,
   ];
   for (const register of modules) register(bot, deps);

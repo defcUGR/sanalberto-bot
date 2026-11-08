@@ -41,7 +41,6 @@ export const config = {
   host: process.env.SOCKET_HOST?.trim() || "127.0.0.1",
   /** Extra origins allowed to open the socket (the web itself is same-origin). */
   corsOrigins: list("SOCKET_CORS_ORIGIN"),
-  editionYear: Number(process.env.EDITION_YEAR) || new Date().getFullYear(),
   /** Usernames (lowercase) that can run destructive commands and cannot be removed. */
   superAdmins: list("SUPERADMINS", "comic_ivans,HipyCas").map((u) =>
     u.replace(/^@/, "").toLowerCase()

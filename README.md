@@ -8,18 +8,23 @@ Bot de Telegram (`@sanalberto_bot`) para llevar los puntos de la Guerra de Carre
 | --- | --- | --- |
 | `/ranking` | Todos | Ranking en texto. |
 | `/chart` | Todos | Gráfica del ranking (PNG generado en el servidor). |
-| `/add`, `/remove` | Admins | Elige los puntos y la carrera; se multiplican por el peso de la carrera. |
+| `/ediciones`, `/edicion <año>` | Todos | Ganador de cada año y clasificación final de uno. |
+| `/add [puntos] [carrera]`, `/remove …` | Admins | Suma o resta puntos, multiplicados por el peso de la carrera. `/add 37 fis` lo hace directamente (la carrera se reconoce sin tildes, por el principio o por alias como «mates»); lo que falte se elige con botones. |
 | `/deshacer` | Admins | Deshace tu último cambio de puntos. |
 | `/historial [n]` | Admins | Últimos cambios de puntos, con quién los hizo. |
+| `/congelar`, `/revelar` | Admins | Congela el marcador público (la web, `/ranking` y `/chart`) mientras los admins siguen sumando; `/revelar` lo muestra con una animación en la web. |
+| `/exportar [año]` | Admins | Clasificación y movimientos de una edición en CSV. |
 | `/pesos`, `/peso <carrera> <peso>` | Admins | Consulta o cambia el multiplicador de cada carrera. |
 | `/crear_grado <nombre> [peso]` | Admins | Añade una carrera. |
 | `/add_admin`, `/remove_admin`, `/admins` | Admins | Gestiona administradores. |
 | `/eliminar_grado <nombre>` | Superadmins | Borra una carrera y su historial. |
-| `/reiniciar_puntos` | Superadmins | Todas las carreras a 0 para una nueva edición (pide confirmación). |
+| `/nueva_edicion <año>` | Superadmins | Cierra y guarda la edición en curso y empieza otra con todas las carreras a 0 (pide confirmación). |
 
 Los administradores se añaden por nombre de usuario y quedan ligados a su id de Telegram la primera vez que escriben al bot. Mientras no hay ninguno, el primero se registra enviando `ADMIN_TOKEN` al bot.
 
-**Nueva edición:** copia `data/data.db` para guardar la anterior, cambia `EDITION_YEAR` si hace falta, ajusta los pesos con `/peso` y lanza `/reiniciar_puntos`.
+**Ediciones:** cada año es una edición. `/nueva_edicion 2027` guarda la clasificación y el historial de la anterior y pone los puntos a 0; los pesos se mantienen (`/peso` para cambiarlos). Las ediciones de antes de 2026 se importan desde su base de datos con `node ops/import-edition.js <año> <archivo.db>`.
+
+**Web:** `/` es el panel en directo y `/proyector` la versión para pantalla grande, con un QR al bot.
 
 ## Desarrollo
 

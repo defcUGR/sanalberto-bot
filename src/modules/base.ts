@@ -5,13 +5,18 @@ import { escapeHtml } from "../telegram";
 const PUBLIC_HELP = [
   "/ranking: ranking de las carreras con sus puntuaciones",
   "/chart: gráfica con las puntuaciones de las carreras",
+  "/ediciones: ganadores de cada año",
+  "/edicion &lt;año&gt;: clasificación final de un año",
 ];
 
 const ADMIN_HELP = [
-  "/add: añade puntos a una carrera",
-  "/remove: quita puntos a una carrera",
+  "/add [puntos] [carrera]: añade puntos a una carrera (por ejemplo <code>/add 37 física</code>; lo que falte se elige con botones)",
+  "/remove [puntos] [carrera]: quita puntos a una carrera",
   "/deshacer: deshace tu último cambio de puntos",
   "/historial [n]: últimos cambios de puntos (10 por defecto)",
+  "/congelar: congela el marcador público (los admins seguís sumando)",
+  "/revelar: muestra el marcador real con la revelación en la web",
+  "/exportar [año]: clasificación y movimientos en CSV",
   "/pesos: multiplicador de puntos de cada carrera",
   "/peso &lt;carrera&gt; &lt;peso&gt;: cambia el multiplicador de una carrera",
   "/crear_grado &lt;nombre&gt; [peso]: añade una carrera",
@@ -22,7 +27,7 @@ const ADMIN_HELP = [
 
 const SUPERADMIN_HELP = [
   "/eliminar_grado &lt;nombre&gt;: borra una carrera y su historial",
-  "/reiniciar_puntos: pone todas las carreras a 0 para una nueva edición",
+  "/nueva_edicion &lt;año&gt;: guarda la edición en curso y empieza otra con todo a 0",
 ];
 
 const baseModule: BotModule = (bot, { db, logger }) => {
@@ -38,7 +43,7 @@ const baseModule: BotModule = (bot, { db, logger }) => {
     const noAdmins = (await db.adminCount()) === 0;
     const isAdmin = !noAdmins && !!(await db.findAdmin(ctx.from));
     await ctx.replyWithHTML(
-      `¡Bienvenido!\n\nTe presentamos el bot de Telegram para la gestión de los puntos de la Guerra de Carreras de San Alberto ${config.editionYear}.\n\n` +
+      `¡Bienvenido!\n\nTe presentamos el bot de Telegram para la gestión de los puntos de la Guerra de Carreras de San Alberto ${(await db.currentEdition()).year}.\n\n` +
         (noAdmins
           ? config.adminToken
             ? "<b>No hay ningún administrador registrado: envíame la clave de administrador para registrarte como tal.</b>"

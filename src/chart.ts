@@ -52,7 +52,12 @@ export interface RankingEntry {
   points: number;
 }
 
-export async function renderRanking(entries: RankingEntry[], logger: Logger): Promise<Buffer> {
+export async function renderRanking(
+  entries: RankingEntry[],
+  year: number,
+  logger: Logger,
+  note?: string
+): Promise<Buffer> {
   loadFonts(logger);
   const rows = [...entries].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   const height = TOP + Math.max(rows.length, 1) * ROW + BOTTOM;
@@ -68,7 +73,7 @@ export async function renderRanking(entries: RankingEntry[], logger: Logger): Pr
   ctx.fillText("Carrera de Carreras", 40, 50);
   ctx.fillStyle = "#94a3b8";
   ctx.font = `500 22px ${FONT}`;
-  ctx.fillText(`San Alberto ${config.editionYear}`, 40, 86);
+  ctx.fillText(`San Alberto ${year}${note ? ` · ${note}` : ""}`, 40, 86);
 
   const max = Math.max(1, ...rows.map((row) => row.points));
   const barLeft = LABEL_WIDTH;

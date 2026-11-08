@@ -60,3 +60,45 @@ export function parseNumber(text: string | undefined): number | null {
 export function formatNumber(value: number): string {
   return value.toLocaleString("es-ES", { maximumFractionDigits: 2 });
 }
+
+/** Lowercase, no accents, only letters and digits ("Ing. Química" → "ingquimica"). */
+export function normalizeName(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Finds a degree by a loosely written name, ignoring case, accents and
+ * punctuation: an exact match; else every written word matching the start of
+ * a word of the name or the other way round ("ingenieria quimica" → "Ing.
+ * Química", "fis" → "Física"); else a prefix or substring of the whole name.
+ * Returns the candidates when it is ambiguous.
+ */
+export function findDegree<T extends { name: string }>(
+  degrees: T[],
+  query: string,
+  aliases: (name: string) => string[] = () => []
+): { match: T } | { candidates: T[] } {
+  const words = (text: string) => text.split(/[\s.]+/).map(normalizeName).filter(Boolean);
+  const wanted = normalizeName(query);
+  const queryWords = words(query);
+  if (!wanted) return { candidates: [] };
+  const named = degrees.map((d) => ({ d, n: normalizeName(d.name), w: words(d.name) }));
+  const tests = [
+    (x: (typeof named)[number]) => x.n === wanted,
+    (x: (typeof named)[number]) => aliases(x.d.name).some((a) => normalizeName(a) === wanted),
+    (x: (typeof named)[number]) =>
+      queryWords.every((q) => x.w.some((w) => w.startsWith(q) || (w.length >= 2 && q.startsWith(w)))),
+    (x: (typeof named)[number]) => x.n.startsWith(wanted),
+    (x: (typeof named)[number]) => x.n.includes(wanted),
+  ];
+  for (const test of tests) {
+    const found = named.filter(test);
+    if (found.length === 1) return { match: found[0]!.d };
+    if (found.length > 1) return { candidates: found.map((x) => x.d) };
+  }
+  return { candidates: [] };
+}

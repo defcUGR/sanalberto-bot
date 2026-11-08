@@ -1,4 +1,3 @@
-import { Markup } from "telegraf";
 import type { BotModule } from "../bot";
 import {
   commandArgs,
@@ -10,7 +9,7 @@ import {
   who,
 } from "../telegram";
 
-// Degrees and edition settings: create, delete, weights and the yearly reset.
+// Degrees: create, delete and weights. Editions are in modules/editions.ts.
 
 /** Splits "Ing. Química 2,4" into the name and an optional trailing number. */
 function nameAndNumber(args: string): { name: string; value: number | null } {
@@ -92,30 +91,6 @@ const degreesModule: BotModule = (bot, deps) => {
     }
     const degree = await db.setWeight(name, value, who(ctx));
     await ctx.replyWithHTML(`Peso de <b>${escapeHtml(degree.name)}</b>: ${formatNumber(degree.weight)}`);
-  });
-
-  bot.command("reiniciar_puntos", async (ctx) => {
-    if (!(await requireSuperAdmin(ctx, deps))) return;
-    await ctx.replyWithHTML(
-      "<b>¿Seguro?</b> Todas las carreras volverán a 0 puntos y se borrará el historial. Haz antes una copia de la base de datos si quieres conservar la edición anterior.",
-      Markup.inlineKeyboard([
-        Markup.button.callback("Sí, reiniciar", "reset:yes"),
-        Markup.button.callback("Cancelar", "reset:no"),
-      ])
-    );
-  });
-
-  bot.action(/^reset:(yes|no)$/, async (ctx) => {
-    if (!(await requireSuperAdmin(ctx, deps))) return;
-    await ctx.deleteMessage().catch(() => undefined);
-    if (ctx.match[1] === "yes") {
-      await db.resetPoints(who(ctx));
-      await live.refresh();
-      await ctx.reply("Puntos reiniciados. ¡Buena edición!");
-    } else {
-      await ctx.reply("Los puntos no se han reiniciado.");
-    }
-    await ctx.answerCbQuery();
   });
 };
 

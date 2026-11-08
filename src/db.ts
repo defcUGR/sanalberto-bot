@@ -1,5 +1,11 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient, type Admin, type Degree } from "./generated/prisma/client";
+import {
+  PrismaClient,
+  type Admin,
+  type Degree,
+  type Edition,
+  type EditionResult,
+} from "./generated/prisma/client";
 import { config } from "./config";
 import type { Logger } from "./logger";
 
@@ -17,6 +23,26 @@ export interface PointsResult {
   weighted: number;
   /** Points actually added or removed. */
   applied: number;
+}
+
+/** A movement as the public web shows it. */
+export interface Movement {
+  id: number;
+  degree: string;
+  type: PointsType;
+  points: number;
+  at: string;
+}
+
+export interface Standing {
+  position: number;
+  degree: string;
+  points: number;
+}
+
+export interface EditionSummary {
+  edition: Edition;
+  standings: Standing[];
 }
 
 export interface UndoResult {
@@ -95,10 +121,18 @@ export class DataBase {
         data: { points: next },
       });
       // Nothing to undo when nothing changed (removing from a degree at 0).
-      if (applied > 0)
+      if (applied > 0) {
+        const edition = await tx.edition.findFirstOrThrow({ where: { closed_at: null } });
         await tx.event.create({
-          data: { degree_id: degreeId, points: applied, type: EVENT_TYPE[type], username },
+          data: {
+            degree_id: degreeId,
+            edition_id: edition.id,
+            points: applied,
+            type: EVENT_TYPE[type],
+            username,
+          },
         });
+      }
       return { degree, weighted, applied };
     });
     this.logger.info(
@@ -108,8 +142,10 @@ export class DataBase {
     return result;
   }
 
-  lastEvents(count: number) {
+  async lastEvents(count: number) {
+    const edition = await this.currentEdition();
     return this.prisma.event.findMany({
+      where: { edition_id: edition.id },
       orderBy: { id: "desc" },
       take: count,
       include: { Degree: { select: { name: true } } },
@@ -119,8 +155,9 @@ export class DataBase {
   /** Reverts the last points event recorded by `username`. */
   async undoLast(username: string): Promise<UndoResult | null> {
     const result = await this.prisma.$transaction(async (tx) => {
+      const edition = await tx.edition.findFirstOrThrow({ where: { closed_at: null } });
       const event = await tx.event.findFirst({
-        where: { username },
+        where: { username, edition_id: edition.id },
         orderBy: { id: "desc" },
         include: { Degree: true },
       });
@@ -145,13 +182,127 @@ export class DataBase {
     return result;
   }
 
-  /** New edition: every degree back to 0 and the history cleared. */
-  async resetPoints(by: string): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.event.deleteMany(),
-      this.prisma.degree.updateMany({ data: { points: 0 } }),
-    ]);
-    this.logger.warn({ by }, "points reset");
+  // ─── Editions ────────────────────────────────────────────────────────────
+
+  /** The open edition. The migrations always leave exactly one. */
+  currentEdition(): Promise<Edition> {
+    return this.prisma.edition.findFirstOrThrow({ where: { closed_at: null } });
+  }
+
+  /** Degree rows the public sees: the snapshot while frozen, live otherwise. */
+  async publicDegrees(edition?: Edition): Promise<Degree[]> {
+    const current = edition ?? (await this.currentEdition());
+    if (current.frozen_at && current.frozen_snapshot)
+      return JSON.parse(current.frozen_snapshot) as Degree[];
+    return this.degreesById();
+  }
+
+  /** Latest movements of the open edition; while frozen, only up to the freeze. */
+  async movements(count: number, edition?: Edition): Promise<Movement[]> {
+    const current = edition ?? (await this.currentEdition());
+    const events = await this.prisma.event.findMany({
+      where: {
+        edition_id: current.id,
+        ...(current.frozen_at ? { timestamp: { lte: current.frozen_at } } : {}),
+      },
+      orderBy: { id: "desc" },
+      take: count,
+      include: { Degree: { select: { name: true } } },
+    });
+    return events.map((e) => ({
+      id: e.id,
+      degree: e.Degree.name,
+      type: e.type === EVENT_TYPE.add ? "add" : "remove",
+      points: e.points,
+      at: e.timestamp.toISOString(),
+    }));
+  }
+
+  /** Freezes the public scoreboard; admins keep adding points. */
+  async freeze(by: string): Promise<Edition | null> {
+    const edition = await this.currentEdition();
+    if (edition.frozen_at) return null;
+    const snapshot = JSON.stringify(await this.degreesById());
+    const frozen = await this.prisma.edition.update({
+      where: { id: edition.id },
+      data: { frozen_at: new Date(), frozen_snapshot: snapshot },
+    });
+    this.logger.warn({ year: frozen.year, by }, "scoreboard frozen");
+    return frozen;
+  }
+
+  /** Shows the real scoreboard again. */
+  async unfreeze(by: string): Promise<Edition | null> {
+    const edition = await this.currentEdition();
+    if (!edition.frozen_at) return null;
+    const live = await this.prisma.edition.update({
+      where: { id: edition.id },
+      data: { frozen_at: null, frozen_snapshot: null },
+    });
+    this.logger.warn({ year: live.year, by }, "scoreboard revealed");
+    return live;
+  }
+
+  private static standings(degrees: { name: string; points: number }[]): Standing[] {
+    return [...degrees]
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+      .map((d, i) => ({ position: i + 1, degree: d.name, points: d.points }));
+  }
+
+  private static fromResults(results: EditionResult[]): Standing[] {
+    return [...results]
+      .sort((a, b) => a.position - b.position)
+      .map(({ position, degree, points }) => ({ position, degree, points }));
+  }
+
+  /**
+   * Closes the open edition, keeping its standings and history, and opens
+   * `year` with every degree at 0 points.
+   */
+  async newEdition(year: number, by: string): Promise<{ closed: EditionSummary; opened: Edition }> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.edition.findFirstOrThrow({ where: { closed_at: null } });
+      const degrees = await tx.degree.findMany();
+      const standings = DataBase.standings(degrees);
+      await tx.editionResult.createMany({
+        data: standings.map((s) => ({ edition_id: current.id, ...s })),
+      });
+      const closed = await tx.edition.update({
+        where: { id: current.id },
+        data: { closed_at: new Date(), frozen_at: null, frozen_snapshot: null },
+      });
+      const opened = await tx.edition.create({ data: { year } });
+      await tx.degree.updateMany({ data: { points: 0 } });
+      return { closed: { edition: closed, standings }, opened };
+    });
+    this.logger.warn({ closed: result.closed.edition.year, opened: year, by }, "new edition");
+    return result;
+  }
+
+  /** Every edition, newest first, with its standings (live for the open one). */
+  async editions(): Promise<EditionSummary[]> {
+    const editions = await this.prisma.edition.findMany({
+      orderBy: { year: "desc" },
+      include: { results: true },
+    });
+    const live = DataBase.standings(await this.degrees());
+    return editions.map(({ results, ...edition }) => ({
+      edition,
+      standings: edition.closed_at ? DataBase.fromResults(results) : live,
+    }));
+  }
+
+  async edition(year: number): Promise<EditionSummary | null> {
+    return (await this.editions()).find((e) => e.edition.year === year) ?? null;
+  }
+
+  /** Movements of an edition, oldest first, for the CSV export. */
+  editionEvents(editionId: number) {
+    return this.prisma.event.findMany({
+      where: { edition_id: editionId },
+      orderBy: { id: "asc" },
+      include: { Degree: { select: { name: true } } },
+    });
   }
 
   // ─── Admins ──────────────────────────────────────────────────────────────
